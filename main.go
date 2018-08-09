@@ -16,6 +16,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -40,15 +41,16 @@ type command struct {
 
 func (c *command) get(args []string) {
 	if len(args) == 0 {
-		log.Println("key is required")
+		fmt.Println("key is required")
 	}
 	for i := range args {
 		key := args[i]
 		val, err := c.cli.Get([]byte(key))
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return
 		}
-		log.Println(string(val))
+		fmt.Println(string(val))
 	}
 }
 func (c *command) set(args []string) {
@@ -58,18 +60,20 @@ func (c *command) set(args []string) {
 	key, val := args[0], args[1]
 	err := c.cli.Set([]byte(key), []byte(val))
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println(err)
+		return
 	}
 }
 
 func (c *command) delete(args []string) {
 	if len(args) == 0 {
-		log.Println("key is required")
+		fmt.Println("key is required")
 	}
 	for i := range args {
 		key := args[i]
 		if err := c.cli.Delete([]byte(key)); err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return
 		}
 	}
 }
@@ -95,12 +99,12 @@ func (c *command) scan(args []string) {
 				return
 			}
 		}
-		log.Println(string(key), string(val))
+		fmt.Println(string(key), ":", string(val))
 	})
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 	}
-	log.Println("Total scanned", count)
+	fmt.Println("Total scanned", count)
 }
 
 func cobraWapper(f func(args []string)) func(cmd *cobra.Command, args []string) {
@@ -138,7 +142,7 @@ func processLine(c *command, line string) {
 		fs.BoolVarP(&c.scanOpts.prefix, "prefix", "p", false, "match with prefix")
 		fs.StringVarP(&c.scanOpts.until, "until", "u", "", "scan until match this key")
 		if err := fs.Parse(args[1:]); err != nil {
-			log.Println(err)
+			fmt.Println(err)
 		}
 		c.scan(fs.Args())
 	default:
