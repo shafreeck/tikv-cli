@@ -115,10 +115,12 @@ func cobraWapper(f func(args []string)) func(cmd *cobra.Command, args []string) 
 
 func promptCompleter(d prompt.Document) []prompt.Suggest {
 	s := []prompt.Suggest{
-		{Text: "get", Description: "get key1 key2 key3..."},
-		{Text: "set", Description: "set key val"},
-		{Text: "delete", Description: "delete key"},
-		{Text: "scan", Description: "scan begin"},
+		{Text: "get", Description: "get <key1> [key2] [key3]..."},
+		{Text: "set", Description: "set <key> <val>"},
+		{Text: "delete", Description: "delete <key>"},
+		{Text: "scan", Description: "scan -n 10 <begin>"},
+		{Text: "quit", Description: "quit the shell"},
+		{Text: "exit", Description: "quit the shell"},
 	}
 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }
