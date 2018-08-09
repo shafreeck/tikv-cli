@@ -1,0 +1,29 @@
+ignored = ["github.com/coreos/etcd/etcdserver", "github.com/coreos/etcd/mvcc", "github.com/coreos/etcd/auth"]
+required = ["github.com/golang/protobuf/jsonpb"]
+
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true
+
+[[constraint]]
+  name = "github.com/pingcap/tidb"
+  version = "2.0.6"
+
+
+[[override]]
+  name = "google.golang.org/grpc"
+  source = "https://github.com/grpc/grpc-go.git"
+  version = "=1.7.5"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.3"
+  
+[[constraint]]
+  name = "github.com/c-bata/go-prompt"
+  version = "0.2.2"
+  
+[[override]]
+  name = "github.com/pingcap/tipb"
+  revision = "2d5073e5521a10f8db2adc0eaab2c46ca0a151d9"
