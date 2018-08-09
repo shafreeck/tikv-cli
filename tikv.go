@@ -54,7 +54,7 @@ func (cli *TikvClient) Set(key []byte, val []byte) error {
 	return nil
 }
 
-func (cli *TikvClient) Scan(begin []byte, limit int, each func(key, val []byte)) (int, error) {
+func (cli *TikvClient) Scan(begin []byte, limit int64, each func(key, val []byte)) (int64, error) {
 	txn, err := cli.store.Begin()
 	if err != nil {
 		return 0, err

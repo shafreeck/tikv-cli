@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"strings"
@@ -31,7 +32,9 @@ type command struct {
 	cli *TikvClient
 
 	scanOpts struct {
-		limit int
+		limit  int64  // number of results
+		prefix bool   // prefix match
+		until  string // end key
 	}
 }
 
@@ -72,14 +75,32 @@ func (c *command) delete(args []string) {
 }
 
 func (c *command) scan(args []string) {
+	var begin []byte
 	if len(args) == 0 {
-		log.Fatalln("begin key is required")
+		begin = []byte{0}
+	} else {
+		begin = []byte(args[0])
 	}
 
-	begin := args[0]
-	c.cli.Scan([]byte(begin), c.scanOpts.limit, func(key, val []byte) {
+	count, err := c.cli.Scan(begin, c.scanOpts.limit, func(key, val []byte) {
+		// match begin as prefix
+		if c.scanOpts.prefix {
+			if !bytes.HasPrefix(key, begin) {
+				return
+			}
+		}
+		// scan until certain key
+		if c.scanOpts.until != "" {
+			if bytes.Compare(key, []byte(c.scanOpts.until)) > 0 {
+				return
+			}
+		}
 		log.Println(string(key), string(val))
 	})
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("Total scanned", count)
 }
 
 func cobraWapper(f func(args []string)) func(cmd *cobra.Command, args []string) {
@@ -113,7 +134,9 @@ func processLine(c *command, line string) {
 		c.delete(args[1:])
 	case "scan":
 		fs := (&cobra.Command{}).Flags()
-		fs.IntVarP(&c.scanOpts.limit, "limit", "n", 10, "number of values to be scanned")
+		fs.Int64VarP(&c.scanOpts.limit, "limit", "n", -1, "number of values to be scanned")
+		fs.BoolVarP(&c.scanOpts.prefix, "prefix", "p", false, "match with prefix")
+		fs.StringVarP(&c.scanOpts.until, "until", "u", "", "scan until match this key")
 		if err := fs.Parse(args[1:]); err != nil {
 			log.Println(err)
 		}
@@ -155,7 +178,9 @@ func main() {
 	cmd.AddCommand(set)
 
 	scan := &cobra.Command{Use: "scan <begin>", Run: cobraWapper(c.scan)}
-	scan.Flags().IntVarP(&c.scanOpts.limit, "limit", "n", 10, "number of values to be scanned")
+	scan.Flags().Int64VarP(&c.scanOpts.limit, "limit", "n", -1, "number of values to be scanned")
+	scan.Flags().BoolVarP(&c.scanOpts.prefix, "prefix", "p", false, "match with prefix")
+	scan.Flags().StringVarP(&c.scanOpts.until, "until", "U", "", "scan until match this key")
 	cmd.AddCommand(scan)
 
 	delete := &cobra.Command{Use: "delete <key>", Run: cobraWapper(c.delete)}
