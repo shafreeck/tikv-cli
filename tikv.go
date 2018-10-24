@@ -54,7 +54,7 @@ func (cli *TikvClient) Set(key []byte, val []byte) error {
 	return nil
 }
 
-func (cli *TikvClient) Scan(begin []byte, limit int64, each func(key, val []byte)) (int64, error) {
+func (cli *TikvClient) Scan(begin []byte, limit int64, each func(key, val []byte) bool) (int64, error) {
 	txn, err := cli.store.Begin()
 	if err != nil {
 		return 0, err
@@ -66,7 +66,9 @@ func (cli *TikvClient) Scan(begin []byte, limit int64, each func(key, val []byte
 	}
 	total := limit
 	for iter.Valid() && limit != 0 {
-		each([]byte(iter.Key()), iter.Value())
+		if !each([]byte(iter.Key()), iter.Value()) {
+			break
+		}
 		if err := iter.Next(); err != nil {
 			return total - limit, err
 		}

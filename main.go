@@ -45,6 +45,7 @@ func (c *command) get(args []string) {
 	}
 	for i := range args {
 		key := args[i]
+		fmt.Println(string(key))
 		val, err := c.cli.Get([]byte(key))
 		if err != nil {
 			fmt.Println(err)
@@ -86,20 +87,21 @@ func (c *command) scan(args []string) {
 		begin = []byte(args[0])
 	}
 
-	count, err := c.cli.Scan(begin, c.scanOpts.limit, func(key, val []byte) {
+	count, err := c.cli.Scan(begin, c.scanOpts.limit, func(key, val []byte) bool {
 		// match begin as prefix
 		if c.scanOpts.prefix {
 			if !bytes.HasPrefix(key, begin) {
-				return
+				return false
 			}
 		}
 		// scan until certain key
 		if c.scanOpts.until != "" {
 			if bytes.Compare(key, []byte(c.scanOpts.until)) > 0 {
-				return
+				return false
 			}
 		}
-		fmt.Println(string(key), ":", string(val))
+		fmt.Printf("%q:%s\n", string(key), string(val))
+		return true
 	})
 	if err != nil {
 		fmt.Println(err)
