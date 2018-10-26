@@ -36,6 +36,7 @@ type command struct {
 		limit  int64  // number of results
 		prefix bool   // prefix match
 		until  string // end key
+		delete bool   // delete all scanned keys
 	}
 }
 
@@ -87,7 +88,7 @@ func (c *command) scan(args []string) {
 		begin = []byte(args[0])
 	}
 
-	count, err := c.cli.Scan(begin, c.scanOpts.limit, func(key, val []byte) bool {
+	count, err := c.cli.Scan(begin, c.scanOpts.limit, c.scanOpts.delete, func(key, val []byte) bool {
 		// match begin as prefix
 		if c.scanOpts.prefix {
 			if !bytes.HasPrefix(key, begin) {
@@ -121,6 +122,7 @@ func promptCompleter(d prompt.Document) []prompt.Suggest {
 		{Text: "set", Description: "set <key> <val>"},
 		{Text: "delete", Description: "delete <key>"},
 		{Text: "scan", Description: "scan -n 10 <begin>"},
+		{Text: "scan", Description: "scan -n 10 <begin> -d"},
 		{Text: "quit", Description: "quit the shell"},
 		{Text: "exit", Description: "quit the shell"},
 	}
@@ -145,6 +147,7 @@ func processLine(c *command, line string) {
 		fs.Int64VarP(&c.scanOpts.limit, "limit", "n", -1, "number of values to be scanned")
 		fs.BoolVarP(&c.scanOpts.prefix, "prefix", "p", false, "match with prefix")
 		fs.StringVarP(&c.scanOpts.until, "until", "u", "", "scan until match this key")
+		fs.BoolVarP(&c.scanOpts.delete, "delete", "d", false, "delete scanned keys")
 		if err := fs.Parse(args[1:]); err != nil {
 			fmt.Println(err)
 		}
@@ -189,6 +192,7 @@ func main() {
 	scan.Flags().Int64VarP(&c.scanOpts.limit, "limit", "n", -1, "number of values to be scanned")
 	scan.Flags().BoolVarP(&c.scanOpts.prefix, "prefix", "p", false, "match with prefix")
 	scan.Flags().StringVarP(&c.scanOpts.until, "until", "U", "", "scan until match this key")
+	scan.Flags().BoolVarP(&c.scanOpts.delete, "delete", "d", false, "delete scanned keys")
 	cmd.AddCommand(scan)
 
 	delete := &cobra.Command{Use: "delete <key>", Run: cobraWapper(c.delete)}
