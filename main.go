@@ -16,6 +16,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -46,13 +47,13 @@ func (c *command) get(args []string) {
 	}
 	for i := range args {
 		key := args[i]
-		fmt.Println(string(key))
-		val, err := c.cli.Get([]byte(key))
+		fmt.Printf("%q\n", string(hexEscape(key)))
+		val, err := c.cli.Get([]byte(hexEscape(key)))
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println(string(val))
+		fmt.Printf("%q\n", string(val))
 	}
 }
 func (c *command) set(args []string) {
@@ -60,7 +61,7 @@ func (c *command) set(args []string) {
 		return
 	}
 	key, val := args[0], args[1]
-	err := c.cli.Set([]byte(key), []byte(val))
+	err := c.cli.Set([]byte(hexEscape(key)), []byte(hexEscape(val)))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -73,7 +74,7 @@ func (c *command) delete(args []string) {
 	}
 	for i := range args {
 		key := args[i]
-		if err := c.cli.Delete([]byte(key)); err != nil {
+		if err := c.cli.Delete([]byte(hexEscape(key))); err != nil {
 			fmt.Println(err)
 			return
 		}
@@ -101,7 +102,7 @@ func (c *command) scan(args []string) {
 				return false
 			}
 		}
-		fmt.Printf("%q:%s\n", string(key), string(val))
+		fmt.Printf("%q:%q\n", string(key), string(val))
 		return true
 	})
 	if err != nil {
@@ -127,6 +128,49 @@ func promptCompleter(d prompt.Document) []prompt.Suggest {
 		{Text: "exit", Description: "quit the shell"},
 	}
 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
+}
+
+// hexEscape escape the hex literal to bytes
+func hexEscape(s string) string {
+	escaped := make([]byte, len(s))
+	tune := false
+	j := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '\\':
+			if tune == true {
+				tune = false
+				escaped[j] = s[i]
+				j++
+				continue
+			}
+			tune = true
+		case 'x':
+			if !tune {
+				escaped[j] = s[i]
+				j++
+				continue
+			}
+			tune = false
+
+			if i+2 >= len(s) {
+				escaped[j] = s[i]
+				j++
+				continue
+			}
+			_, err := hex.Decode(escaped[j:], []byte(s[i+1:i+3]))
+			if err != nil {
+				log.Fatalln(err)
+			}
+			i += 2
+			j++
+		default:
+			tune = false
+			escaped[j] = s[i]
+			j++
+		}
+	}
+	return string(escaped[0:j])
 }
 
 func processLine(c *command, line string) {
